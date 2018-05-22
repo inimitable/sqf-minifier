@@ -7,26 +7,25 @@ import sre_constants
 
 INLINE_COMMENT = compile('//+[^\n]+')
 BLOCK_COMMENT = compile('/\*.*?\*/', DOTALL)
-NOT_IN_QUOTES_REGEX = "(?=([^\"\\]*(\\.|\"([^\"\\]*\\.)*[^\"\\]*\"))*[^\"]*$)"
+NOT_IN_QUOTES_REGEX = r"(?=([^\"\\]*(\\.|\"([^\"\\]*\\.)*[^\"\\]*\"))*[^\"]*$)"
 
 
 def strip_comments(text: str) -> str:
+    """Removes SQF-style comments and block comments."""
     text = sub(INLINE_COMMENT, '', text)
     text = sub(BLOCK_COMMENT, '', text)
     return text
 
 
-def __safe_regexes():
+def __safe_regexes() -> dict:
+    """Generates some regex replacement rules automatically (based on character types)."""
     repdict = dict()
     needs_escaped = '[]{}()+'
     for char in ',=[];-/{}()<>+':
-        escape = f"\\{char}" if char in needs_escaped else char
-        repdict[rf' {escape}{NOT_IN_QUOTES_REGEX}'] = char
-        repdict[rf'{escape} {NOT_IN_QUOTES_REGEX}'] = char
+        escape = fr"\{char}" if char in needs_escaped else char
+        repdict[rf' *{escape} *{NOT_IN_QUOTES_REGEX}'] = char
 
-    regexes = dict()
-
-    return regexes
+    return repdict
 
 
 def __compile_regexes(repdict: dict) -> dict:
@@ -43,7 +42,7 @@ def __compile_regexes(repdict: dict) -> dict:
     return regexes
 
 
-def get_regexes():
+def get_regexes() -> dict:
     """Gets the list of replacement regexes for use in minifying SQF."""
     regexes = __safe_regexes()
 
@@ -52,8 +51,6 @@ def get_regexes():
     regexes['\n?\t' + NOT_IN_QUOTES_REGEX] = ''
     # remove newlines
     regexes['\n' + NOT_IN_QUOTES_REGEX] = ''
-    # remove space between open operator and first character
-    regexes["[\{\[\(] ([^\W])" + NOT_IN_QUOTES_REGEX] = '{$1'
 
     return __compile_regexes(regexes)
 
@@ -61,7 +58,6 @@ def get_regexes():
 def safe_replacements(text: str) -> str:
     # Perform string-safe replacements.
     regexes = get_regexes()
-    _regexes()
     for regex, repl in regexes.items():
         try:
             text = sub(regex, repl, text)
@@ -71,7 +67,7 @@ def safe_replacements(text: str) -> str:
     return text
 
 
-def minify(file_in: (Path, str), file_out: (Path, str, bool, None) = None):
+def minify(file_in: (Path, str), file_out: (Path, str, bool, None) = None) -> str:
     """Minifies an SQF file, optionally outputting minified text to a file."""
     file_in = Path(file_in)
 
@@ -95,10 +91,11 @@ if __name__ == '__main__':
     from sys import argv
 
 
-    def main(arguments, do_print=False):
+    def main(arguments: dict, do_print: bool = False):
         try:
             text = minify(**arguments)
             if do_print:
+                # print(len(text))
                 print(text)
         except FileNotFoundError:
             print(f"Cannot find file: \"{argv[1]}\"")

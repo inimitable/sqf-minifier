@@ -10,6 +10,15 @@ BLOCK_COMMENT = compile('/\*.*?\*/', DOTALL)
 NOT_IN_QUOTES_REGEX = r"(?=([^\"\\]*(\\.|\"([^\"\\]*\\.)*[^\"\\]*\"))*[^\"]*$)"
 
 
+def load_code(path_or_code: (Path, str)):
+    """If passed a file path, loads code from that file. Else, returns its input."""
+
+    if Path(path_or_code).exists():
+        with open(path_or_code) as f:
+            return f.read()
+
+    return path_or_code
+
 def strip_comments(text: str) -> str:
     """Removes SQF-style comments and block comments."""
     text = sub(INLINE_COMMENT, '', text)
@@ -67,7 +76,16 @@ def safe_replacements(text: str) -> str:
     return text
 
 
-def minify(file_in: (Path, str), file_out: (Path, str, bool, None) = None) -> str:
+def minify_code(code):
+    """Minifies SQF code."""
+
+    code = strip_comments(code)
+    code = safe_replacements(code)
+
+    return code
+
+
+def minify_file(file_in: (Path, str), file_out: (Path, str, bool, None) = False) -> str:
     """Minifies an SQF file, optionally outputting minified text to a file."""
     file_in = Path(file_in)
 
@@ -77,8 +95,7 @@ def minify(file_in: (Path, str), file_out: (Path, str, bool, None) = None) -> st
     with open(file_in) as f:
         text = f.read()
 
-    text = strip_comments(text)
-    text = safe_replacements(text)
+    text = minify_code(text)
 
     if file_out:
         with open(file_out, 'w') as f:
@@ -93,7 +110,7 @@ if __name__ == '__main__':
 
     def main(arguments: dict, do_print: bool = False):
         try:
-            text = minify(**arguments)
+            text = minify_file(**arguments)
             if do_print:
                 # print(len(text))
                 print(text)
@@ -105,7 +122,7 @@ if __name__ == '__main__':
         args = {'file_in': argv[1], 'file_out': argv[2]}
         do_print = False
     elif len(argv) == 2:
-        args = {'file_in': argv[1], 'file_out': False}
+        args = {'file_in': argv[1]}
         do_print = True
     else:
         print('minify.py by inimitable\nMinifies an SQF source file.\n\nUsage:\n\tminify.py filename_in [filename_out]')

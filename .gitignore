@@ -155,4 +155,4 @@ crashlytics-build.properties
 fabric.properties
 
 #### User-defined ignores
-/sqflinter
+/sqflinter/
